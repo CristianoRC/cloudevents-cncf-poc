@@ -54,38 +54,31 @@ CloudEvents permite **extensões customizadas** para necessidades específicas:
 
 ## Arquitetura da POC
 
-```mermaid
-flowchart TD
-    Client["🖥️ Cliente (curl / test.sh)"]
-
-    Client -- "POST /api/events/order-created\nPOST /api/events/order-shipped" --> Producer
-
-    subgraph Producer["Producer C# — ASP.NET :5001"]
-        P1["Cria CloudEvent v1.0\n(id, type, source, correlationid)"]
-        P2["Serializa em Structured Mode\napplication/cloudevents+json"]
-        P1 --> P2
-    end
-
-    Producer -- "POST /api/events\nCloudEvents HTTP" --> CD
-    Producer -- "POST /api/events\nCloudEvents HTTP" --> CN
-    Producer -- "POST /api/events\nCloudEvents HTTP" --> CP
-
-    subgraph Consumers["Consumers — Multilinguagem"]
-        CD["🟣 Consumer C#\nASP.NET :5002"]
-        CN["🟢 Consumer Node.js\nExpress :3002"]
-        CP["🔵 Consumer Python\nFlask :8000"]
-    end
-
-    CD -- "GET /api/events" --> Client
-    CN -- "GET /api/events" --> Client
-    CP -- "GET /api/events" --> Client
-
-    style Producer fill:#2d6a4f,stroke:#1b4332,color:#fff
-    style Consumers fill:#1a1a2e,stroke:#16213e,color:#fff
-    style CD fill:#512da8,stroke:#311b92,color:#fff
-    style CN fill:#2e7d32,stroke:#1b5e20,color:#fff
-    style CP fill:#1565c0,stroke:#0d47a1,color:#fff
-    style Client fill:#e65100,stroke:#bf360c,color:#fff
+```
+                    ┌──────────────────────────┐
+                    │     Producer C#          │
+                    │     (ASP.NET :5001)      │
+                    │                          │
+                    │  order.created           │
+                    │  order.shipped           │
+                    └────────┬─────────────────┘
+                             │
+                             │  CloudEvents HTTP
+                             │  (Structured Mode)
+                             │
+              ┌──────────────┼──────────────┐
+              │              │              │
+              ▼              ▼              ▼
+┌──────────────────┐ ┌──────────────┐ ┌──────────────────┐
+│  Consumer C#     │ │ Consumer     │ │ Consumer Python  │
+│  (ASP.NET :5002) │ │ Node.js      │ │ (Flask :8000)    │
+│                  │ │ (Express     │ │                  │
+│  Recebe QUALQUER │ │  :3002)      │ │ Recebe QUALQUER  │
+│  CloudEvent      │ │              │ │ CloudEvent       │
+└──────────────────┘ │ Recebe       │ └──────────────────┘
+                     │ QUALQUER     │
+                     │ CloudEvent   │
+                     └──────────────┘
 ```
 
 **Ponto-chave**: O producer C# envia o mesmo evento para **3 consumers em linguagens diferentes**, demonstrando que:

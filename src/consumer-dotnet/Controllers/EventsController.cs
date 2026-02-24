@@ -1,5 +1,4 @@
 using System.Text.Json;
-using CloudNative.CloudEvents;
 using CloudNative.CloudEvents.AspNetCore;
 using CloudNative.CloudEvents.SystemTextJson;
 using ConsumerDotnet.Services;
@@ -48,18 +47,17 @@ public class EventsController : ControllerBase
         _logger.LogInformation(
             """
             ╔══════════════════════════════════════════════════════════════╗
-            ║  CloudEvent Received (consumer-dotnet)                      ║
+            ║  CloudEvent Received (consumer-dotnet)                       ║
             ╠══════════════════════════════════════════════════════════════╣
-            ║  ID:          {EventId}
-            ║  Type:        {Type}
-            ║  Source:      {Source}
-            ║  Time:        {Time}
-            ║  SpecVersion: {SpecVersion}
+            ║  ID:          {EventId}                                      ║
+            ║  Type:        {Type}                                         ║
+            ║  Source:      {Source}                                       ║
+            ║  Time:        {Time}                                         ║
+            ║  SpecVersion: {SpecVersion}                                  ║
             ╚══════════════════════════════════════════════════════════════╝
             """,
             cloudEvent.Id, cloudEvent.Type, cloudEvent.Source, cloudEvent.Time, cloudEvent.SpecVersion.VersionId);
 
-        _logger.LogInformation("Data: {Data}", cloudEvent.Data?.ToString());
 
         return Ok(new
         {

@@ -38,15 +38,3 @@ services:
       - consumer-dotnet
       - consumer-node
 
-  producer-node:
-    build:
-      context: ./src/producer-node
-    ports:
-      - "3001:3001"
-    environment:
-      - PORT=3001
-      - CONSUMER_DOTNET_URL=http://consumer-dotnet:5002
-      - CONSUMER_NODE_URL=http://consumer-node:3002
-    depends_on:
-      - consumer-dotnet
-      - consumer-node

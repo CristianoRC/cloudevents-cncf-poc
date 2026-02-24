@@ -18,7 +18,8 @@ public class CloudEventPublisher : ICloudEventPublisher
         _consumerUrls =
         [
             Environment.GetEnvironmentVariable("CONSUMER_DOTNET_URL") ?? "http://localhost:5002",
-            Environment.GetEnvironmentVariable("CONSUMER_NODE_URL") ?? "http://localhost:3002"
+            Environment.GetEnvironmentVariable("CONSUMER_NODE_URL") ?? "http://localhost:3002",
+            Environment.GetEnvironmentVariable("CONSUMER_PYTHON_URL") ?? "http://localhost:8000"
         ];
     }
 

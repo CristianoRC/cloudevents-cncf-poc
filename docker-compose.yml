@@ -25,6 +25,19 @@ services:
       timeout: 5s
       retries: 3
 
+  consumer-python:
+    build:
+      context: ./src/consumer-python
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
   producer-dotnet:
     build:
       context: ./src/producer-dotnet
@@ -34,7 +47,9 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - CONSUMER_DOTNET_URL=http://consumer-dotnet:5002
       - CONSUMER_NODE_URL=http://consumer-node:3002
+      - CONSUMER_PYTHON_URL=http://consumer-python:8000
     depends_on:
       - consumer-dotnet
       - consumer-node
+      - consumer-python
 

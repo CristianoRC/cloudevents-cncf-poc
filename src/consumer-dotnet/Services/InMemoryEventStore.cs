@@ -1,14 +1,15 @@
 using System.Collections.Concurrent;
+using ConsumerDotnet.Models;
 
 namespace ConsumerDotnet.Services;
 
 public class InMemoryEventStore : IEventStore
 {
-    private readonly ConcurrentBag<object> _events = [];
+    private readonly ConcurrentBag<ReceivedCloudEvent> _events = [];
 
-    public void Add(object eventRecord) => _events.Add(eventRecord);
+    public void Add(ReceivedCloudEvent eventRecord) => _events.Add(eventRecord);
 
-    public IReadOnlyList<object> GetAll() => [.. _events];
+    public IReadOnlyList<ReceivedCloudEvent> GetAll() => [.. _events];
 
     public void Clear() => _events.Clear();
 

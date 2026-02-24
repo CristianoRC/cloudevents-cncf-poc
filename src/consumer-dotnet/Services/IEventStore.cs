@@ -1,9 +1,11 @@
+using ConsumerDotnet.Models;
+
 namespace ConsumerDotnet.Services;
 
 public interface IEventStore
 {
-    void Add(object eventRecord);
-    IReadOnlyList<object> GetAll();
+    void Add(ReceivedCloudEvent eventRecord);
+    IReadOnlyList<ReceivedCloudEvent> GetAll();
     void Clear();
     int Count { get; }
 }

@@ -34,10 +34,6 @@ public class CloudEventPublisher : ICloudEventPublisher
                 var response = await _httpClient.PostAsync($"{url}/api/events", content);
 
                 results.Add(new PublishResult(url, (int)response.StatusCode, response.IsSuccessStatusCode));
-
-                _logger.LogInformation(
-                    "CloudEvent {EventId} ({Type}) sent to {Consumer} -> {StatusCode}",
-                    cloudEvent.Id, cloudEvent.Type, url, response.StatusCode);
             }
             catch (Exception ex)
             {

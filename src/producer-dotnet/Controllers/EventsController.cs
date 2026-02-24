@@ -2,6 +2,7 @@ using System.Net.Mime;
 using System.Text.Json;
 using CloudNative.CloudEvents;
 using Microsoft.AspNetCore.Mvc;
+using ProducerDotnet.Models;
 using ProducerDotnet.Services;
 
 namespace ProducerDotnet.Controllers;
@@ -22,6 +23,19 @@ public class EventsController : ControllerBase
     {
         var orderId = Guid.NewGuid().ToString();
 
+        var data = new OrderCreatedData(
+            OrderId: orderId,
+            CustomerId: $"customer-{Random.Shared.Next(1000, 9999)}",
+            Items:
+            [
+                new OrderItem("PROD-001", "Notebook Dell", 1, 4599.90m),
+                new OrderItem("PROD-002", "Mouse Logitech", 2, 149.90m)
+            ],
+            Total: 4899.70m,
+            Currency: "BRL",
+            CreatedAt: DateTime.UtcNow
+        );
+
         var cloudEvent = new CloudEvent
         {
             Id = Guid.NewGuid().ToString(),
@@ -29,30 +43,26 @@ public class EventsController : ControllerBase
             Source = new Uri("/producer-dotnet/orders", UriKind.Relative),
             Time = DateTimeOffset.UtcNow,
             DataContentType = MediaTypeNames.Application.Json,
-            Data = JsonSerializer.Serialize(new
-            {
-                orderId,
-                customerId = $"customer-{Random.Shared.Next(1000, 9999)}",
-                items = new[]
-                {
-                    new { productId = "PROD-001", name = "Notebook Dell", quantity = 1, price = 4599.90m },
-                    new { productId = "PROD-002", name = "Mouse Logitech", quantity = 2, price = 149.90m }
-                },
-                total = 4899.70m,
-                currency = "BRL",
-                createdAt = DateTime.UtcNow
-            }),
+            Data = JsonSerializer.Serialize(data),
             ["partitionkey"] = orderId
         };
 
         var results = await _publisher.PublishAsync(cloudEvent);
-        return Ok(new { eventId = cloudEvent.Id, type = cloudEvent.Type, sentTo = results });
+        return Ok(new EventResponse(cloudEvent.Id, cloudEvent.Type, results));
     }
 
     [HttpPost("order-shipped")]
     public async Task<IActionResult> OrderShipped()
     {
         var orderId = Guid.NewGuid().ToString();
+
+        var data = new OrderShippedData(
+            OrderId: orderId,
+            TrackingCode: $"BR{Random.Shared.Next(100000000, 999999999)}",
+            Carrier: "Correios",
+            EstimatedDelivery: DateTime.UtcNow.AddDays(5),
+            ShippedAt: DateTime.UtcNow
+        );
 
         var cloudEvent = new CloudEvent
         {
@@ -61,52 +71,11 @@ public class EventsController : ControllerBase
             Source = new Uri("/producer-dotnet/orders", UriKind.Relative),
             Time = DateTimeOffset.UtcNow,
             DataContentType = MediaTypeNames.Application.Json,
-            Data = JsonSerializer.Serialize(new
-            {
-                orderId,
-                trackingCode = $"BR{Random.Shared.Next(100000000, 999999999)}",
-                carrier = "Correios",
-                estimatedDelivery = DateTime.UtcNow.AddDays(5),
-                shippedAt = DateTime.UtcNow
-            }),
+            Data = JsonSerializer.Serialize(data),
             ["partitionkey"] = orderId
         };
 
         var results = await _publisher.PublishAsync(cloudEvent);
-        return Ok(new { eventId = cloudEvent.Id, type = cloudEvent.Type, sentTo = results });
-    }
-
-    [HttpPost("batch")]
-    public async Task<IActionResult> Batch()
-    {
-        var events = new List<object>();
-
-        for (var i = 0; i < 5; i++)
-        {
-            var orderId = Guid.NewGuid().ToString();
-
-            var cloudEvent = new CloudEvent
-            {
-                Id = Guid.NewGuid().ToString(),
-                Type = "com.example.order.created",
-                Source = new Uri("/producer-dotnet/orders", UriKind.Relative),
-                Time = DateTimeOffset.UtcNow,
-                DataContentType = MediaTypeNames.Application.Json,
-                Data = JsonSerializer.Serialize(new
-                {
-                    orderId,
-                    customerId = $"customer-{Random.Shared.Next(1000, 9999)}",
-                    total = Math.Round(Random.Shared.NextDouble() * 10000, 2),
-                    currency = "BRL",
-                    createdAt = DateTime.UtcNow
-                }),
-                ["partitionkey"] = orderId
-            };
-
-            var results = await _publisher.PublishAsync(cloudEvent);
-            events.Add(new { eventId = cloudEvent.Id, type = cloudEvent.Type, sentTo = results });
-        }
-
-        return Ok(new { batchSize = events.Count, events });
+        return Ok(new EventResponse(cloudEvent.Id, cloudEvent.Type, results));
     }
 }

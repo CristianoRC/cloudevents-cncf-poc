@@ -4,7 +4,6 @@
 
 Demonstrar a viabilidade de adotar o padrão **CloudEvents** (CNCF) para padronizar a comunicação assíncrona entre serviços, independente da linguagem ou plataforma.
 
-Esta POC serve como base técnica para a RFC de padronização de eventos na empresa.
 
 ---
 
@@ -203,52 +202,3 @@ Exemplos:
 
 ---
 
-## Argumentos para a RFC
-
-### Por que adotar CloudEvents?
-
-1. **Padrão aberto da CNCF** - Mesmo nível de governança que Kubernetes, Prometheus, etc.
-2. **Interoperabilidade comprovada** - Esta POC demonstra C# e Node.js se comunicando sem nenhum contrato compartilhado além do envelope CloudEvents
-3. **SDKs maduros** - Disponíveis para C#, Java, Go, Python, Node.js, Rust, etc.
-4. **Transport agnostic** - Funciona sobre HTTP, Kafka, AMQP, NATS, etc. Mudar o transport não exige mudar o formato do evento
-5. **Evita vendor lock-in** - CloudEvents é suportado nativamente por Azure Event Grid, AWS EventBridge, Knative, etc.
-6. **Auto-descritivo** - Metadados como `type`, `source`, `time` permitem roteamento, filtragem e observabilidade sem inspecionar o payload
-7. **Extensível** - Extension attributes permitem adicionar campos como `partitionkey`, `traceparent`, `correlationid`, etc.
-
-### Comparação: sem padrão vs. com CloudEvents
-
-| Aspecto                  | Sem padrão                        | Com CloudEvents                      |
-|--------------------------|-----------------------------------|--------------------------------------|
-| Formato do envelope      | Cada time define o seu            | Padrão único (spec 1.0)             |
-| Metadados                | Inconsistentes ou ausentes        | `id`, `type`, `source`, `time`       |
-| Deserialização           | Código custom por integração      | SDK oficial resolve                  |
-| Roteamento               | Baseado em tópico/fila apenas     | Filtro por `type`, `source`, etc.    |
-| Observabilidade          | Logs desestruturados              | Campos padronizados para tracing     |
-| Onboarding de novo time  | Ler docs de cada producer         | Spec universal                       |
-| Troca de broker          | Refatoração significativa         | Apenas muda o binding (transport)    |
-
----
-
-## Estrutura do projeto
-
-```
-poc-cloudevents/
-├── docker-compose.yml
-├── test.sh
-├── README.md
-└── src/
-    ├── producer-dotnet/     # ASP.NET Minimal API (C#)
-    ├── consumer-dotnet/     # ASP.NET Minimal API (C#)
-    ├── producer-node/       # Express (Node.js)
-    └── consumer-node/       # Express (Node.js)
-```
-
----
-
-## Próximos passos sugeridos
-
-1. **Adicionar Kafka como transport** - Demonstrar que o mesmo CloudEvent funciona sobre HTTP e Kafka
-2. **Schema Registry** - Registrar schemas dos `data` para validação
-3. **Tracing distribuído** - Usar a extension `traceparent` para correlacionar eventos no Jaeger/Zipkin
-4. **Dead Letter Queue** - Tratamento de eventos que falharam no processamento
-5. **Validação de schema** - Garantir que o `data` segue o contrato esperado para cada `type`

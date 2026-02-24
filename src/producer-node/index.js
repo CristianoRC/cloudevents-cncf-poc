@@ -65,7 +65,7 @@ app.post("/api/events/user-registered", async (_req, res) => {
       plan: "premium",
       registeredAt: new Date().toISOString(),
     },
-    partitionkey: userId,
+    correlationid: userId,
   });
 
   const results = await sendToConsumers(cloudEvent);
@@ -89,7 +89,7 @@ app.post("/api/events/user-updated", async (_req, res) => {
       },
       updatedAt: new Date().toISOString(),
     },
-    partitionkey: userId,
+    correlationid: userId,
   });
 
   const results = await sendToConsumers(cloudEvent);
@@ -114,7 +114,7 @@ app.post("/api/events/batch", async (_req, res) => {
         plan: i % 2 === 0 ? "premium" : "basic",
         registeredAt: new Date().toISOString(),
       },
-      partitionkey: userId,
+      correlationid: userId,
     });
 
     const results = await sendToConsumers(cloudEvent);

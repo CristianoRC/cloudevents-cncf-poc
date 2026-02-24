@@ -66,6 +66,7 @@ app.post("/api/events/user-registered", async (_req, res) => {
       registeredAt: new Date().toISOString(),
     },
     correlationid: userId,
+    partitionkey: userId,
   });
 
   const results = await sendToConsumers(cloudEvent);
@@ -90,6 +91,7 @@ app.post("/api/events/user-updated", async (_req, res) => {
       updatedAt: new Date().toISOString(),
     },
     correlationid: userId,
+    partitionkey: userId,
   });
 
   const results = await sendToConsumers(cloudEvent);
@@ -115,6 +117,7 @@ app.post("/api/events/batch", async (_req, res) => {
         registeredAt: new Date().toISOString(),
       },
       correlationid: userId,
+      partitionkey: userId,
     });
 
     const results = await sendToConsumers(cloudEvent);

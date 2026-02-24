@@ -44,7 +44,8 @@ public class EventsController : ControllerBase
             Time = DateTimeOffset.UtcNow,
             DataContentType = MediaTypeNames.Application.Json,
             Data = JsonSerializer.Serialize(data),
-            ["correlationid"] = orderId
+            ["correlationid"] = orderId,
+            ["partitionkey"] = orderId
         };
 
         var results = await _publisher.PublishAsync(cloudEvent);
@@ -72,7 +73,8 @@ public class EventsController : ControllerBase
             Time = DateTimeOffset.UtcNow,
             DataContentType = MediaTypeNames.Application.Json,
             Data = JsonSerializer.Serialize(data),
-            ["correlationid"] = orderId
+            ["correlationid"] = orderId,
+            ["partitionkey"] = orderId
         };
 
         var results = await _publisher.PublishAsync(cloudEvent);

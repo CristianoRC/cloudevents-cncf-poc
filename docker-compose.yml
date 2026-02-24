@@ -1,0 +1,52 @@
+services:
+  consumer-dotnet:
+    build:
+      context: ./src/consumer-dotnet
+    ports:
+      - "5002:5002"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5002/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  consumer-node:
+    build:
+      context: ./src/consumer-node
+    ports:
+      - "3002:3002"
+    environment:
+      - PORT=3002
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3002/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  producer-dotnet:
+    build:
+      context: ./src/producer-dotnet
+    ports:
+      - "5001:5001"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - CONSUMER_DOTNET_URL=http://consumer-dotnet:5002
+      - CONSUMER_NODE_URL=http://consumer-node:3002
+    depends_on:
+      - consumer-dotnet
+      - consumer-node
+
+  producer-node:
+    build:
+      context: ./src/producer-node
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - CONSUMER_DOTNET_URL=http://consumer-dotnet:5002
+      - CONSUMER_NODE_URL=http://consumer-node:3002
+    depends_on:
+      - consumer-dotnet
+      - consumer-node

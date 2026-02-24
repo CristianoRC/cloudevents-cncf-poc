@@ -1,6 +1,0 @@
-@ProducerDotnet_HostAddress = http://localhost:5059
-
-GET {{ProducerDotnet_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###

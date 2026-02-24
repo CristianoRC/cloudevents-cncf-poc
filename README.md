@@ -4,14 +4,13 @@
 
 Demonstrar a viabilidade de adotar o padrão **CloudEvents** (CNCF) para padronizar a comunicação assíncrona entre serviços, independente da linguagem ou plataforma.
 
-
 ---
 
 ## O que é CloudEvents?
 
 [CloudEvents](https://cloudevents.io/) é uma **especificação da CNCF** (Cloud Native Computing Foundation) que define um formato padrão para descrever eventos. É agnóstico a:
 
-- **Linguagem** (C#, Node.js, Java, Go, Python, etc.)
+- **Linguagem** (C#, Node.js, Python, Java, Go, etc.)
 - **Transporte** (HTTP, Kafka, AMQP, NATS, etc.)
 - **Cloud Provider** (AWS, Azure, GCP, on-premises)
 
@@ -39,39 +38,53 @@ CloudEvents permite **extensões customizadas** para necessidades específicas:
 
 ```json
 {
+  "correlationid": "order-123",
   "partitionkey": "order-123",
   "traceparent": "00-abc123-def456-01"
 }
 ```
+
+| Extension        | Propósito                                        |
+|------------------|--------------------------------------------------|
+| `correlationid`  | Rastreamento de fluxos distribuídos entre serviços |
+| `partitionkey`   | Roteamento/ordenação em brokers (Kafka, etc.)     |
+| `traceparent`    | Integração com OpenTelemetry/Jaeger/Zipkin        |
 
 ---
 
 ## Arquitetura da POC
 
 ```
-┌─────────────────────┐         ┌─────────────────────┐
-│   Producer C#       │         │   Producer Node.js   │
-│   (ASP.NET :5001)   │         │   (Express :3001)    │
-│                     │         │                      │
-│ order.created       │         │ user.registered      │
-│ order.shipped       │         │ user.updated         │
-└────────┬────────────┘         └────────┬─────────────┘
-         │                               │
-         │      CloudEvents HTTP         │
-         │      (Structured Mode)        │
-         ▼                               ▼
-┌─────────────────────┐         ┌─────────────────────┐
-│   Consumer C#       │         │   Consumer Node.js   │
-│   (ASP.NET :5002)   │         │   (Express :3002)    │
-│                     │         │                      │
-│ Recebe QUALQUER     │         │ Recebe QUALQUER      │
-│ CloudEvent          │         │ CloudEvent           │
-└─────────────────────┘         └──────────────────────┘
+                    ┌──────────────────────────┐
+                    │     Producer C#          │
+                    │     (ASP.NET :5001)      │
+                    │                          │
+                    │  order.created           │
+                    │  order.shipped           │
+                    └────────┬─────────────────┘
+                             │
+                             │  CloudEvents HTTP
+                             │  (Structured Mode)
+                             │
+              ┌──────────────┼──────────────┐
+              │              │              │
+              ▼              ▼              ▼
+┌──────────────────┐ ┌──────────────┐ ┌──────────────────┐
+│  Consumer C#     │ │ Consumer     │ │ Consumer Python  │
+│  (ASP.NET :5002) │ │ Node.js      │ │ (Flask :8000)    │
+│                  │ │ (Express     │ │                  │
+│  Recebe QUALQUER │ │  :3002)      │ │ Recebe QUALQUER  │
+│  CloudEvent      │ │              │ │ CloudEvent       │
+└──────────────────┘ │ Recebe       │ └──────────────────┘
+                     │ QUALQUER     │
+                     │ CloudEvent   │
+                     └──────────────┘
 ```
 
-**Ponto-chave**: Cada producer envia eventos para **ambos** os consumers, demonstrando que:
-- Um evento produzido em **C#** é consumido corretamente por **Node.js** (e vice-versa)
-- O formato é **auto-descritivo** - o consumer não precisa conhecer o producer previamente
+**Ponto-chave**: O producer C# envia o mesmo evento para **3 consumers em linguagens diferentes**, demonstrando que:
+- O mesmo CloudEvent produzido em **C#** é consumido corretamente por **C#**, **Node.js** e **Python**
+- O formato é **auto-descritivo** — o consumer não precisa conhecer o producer previamente
+- Os SDKs oficiais da CNCF garantem interoperabilidade entre linguagens
 
 ---
 
@@ -90,6 +103,7 @@ Content-Type: application/cloudevents+json
   "source": "/producer-dotnet/orders",
   "time": "2026-02-24T10:30:00Z",
   "datacontenttype": "application/json",
+  "correlationid": "order-xyz-123",
   "partitionkey": "order-xyz-123",
   "data": {
     "orderId": "order-xyz-123",
@@ -119,35 +133,30 @@ Content-Type: application/cloudevents+json
 docker compose up --build
 ```
 
-### Executar os testes
-
-```bash
-./test.sh
-```
-
 ### Testar manualmente
 
 ```bash
-# C# Producer - Criar pedido
+# Criar pedido
 curl -X POST http://localhost:5001/api/events/order-created | jq
 
-# C# Producer - Enviar pedido
+# Enviar pedido
 curl -X POST http://localhost:5001/api/events/order-shipped | jq
 
-# Node.js Producer - Registrar usuário
-curl -X POST http://localhost:3001/api/events/user-registered | jq
+# Consultar eventos recebidos em cada consumer
+curl http://localhost:5002/api/events | jq   # Consumer C#
+curl http://localhost:3002/api/events | jq   # Consumer Node.js
+curl http://localhost:8000/api/events | jq   # Consumer Python
 
-# Node.js Producer - Atualizar usuário
-curl -X POST http://localhost:3001/api/events/user-updated | jq
-
-# Envio em batch (5 eventos de uma vez)
-curl -X POST http://localhost:5001/api/events/batch | jq
-curl -X POST http://localhost:3001/api/events/batch | jq
-
-# Consultar eventos recebidos
-curl http://localhost:5002/api/events | jq
-curl http://localhost:3002/api/events | jq
+# Limpar eventos
+curl -X DELETE http://localhost:5002/api/events
+curl -X DELETE http://localhost:3002/api/events
+curl -X DELETE http://localhost:8000/api/events
 ```
+
+### Swagger UI
+
+- Producer C#: http://localhost:5001/swagger
+- Consumer C#: http://localhost:5002/swagger
 
 ---
 
@@ -162,27 +171,53 @@ dotnet run --urls http://localhost:5002
 cd src/consumer-node
 npm start
 
-# Terminal 3 - Producer C#
+# Terminal 3 - Consumer Python
+cd src/consumer-python
+pip install -r requirements.txt
+python app.py
+
+# Terminal 4 - Producer C#
 cd src/producer-dotnet
 dotnet run --urls http://localhost:5001
-
-# Terminal 4 - Producer Node.js
-cd src/producer-node
-npm start
 ```
 
 ---
 
 ## SDKs utilizados
 
-| Linguagem | Pacote                              | Versão |
-|-----------|-------------------------------------|--------|
-| C#        | `CloudNative.CloudEvents`           | 2.8.0  |
-| C#        | `CloudNative.CloudEvents.SystemTextJson` | 2.8.0 |
-| C#        | `CloudNative.CloudEvents.AspNetCore`| 2.8.0  |
-| Node.js   | `cloudevents`                       | 8.x    |
+| Linguagem | Pacote                                     | Versão |
+|-----------|--------------------------------------------|--------|
+| C#        | `CloudNative.CloudEvents`                  | 2.8.0  |
+| C#        | `CloudNative.CloudEvents.SystemTextJson`   | 2.8.0  |
+| C#        | `CloudNative.CloudEvents.AspNetCore`       | 2.8.0  |
+| C#        | `Swashbuckle.AspNetCore`                   | 10.1.4 |
+| Node.js   | `cloudevents`                              | 8.x    |
+| Python    | `cloudevents`                              | 1.11.0 |
+| Python    | `flask`                                    | 3.1.0  |
 
-Ambos os SDKs são mantidos pela **CNCF** e seguem a spec CloudEvents v1.0.
+Todos os SDKs de CloudEvents são mantidos pela **CNCF** e seguem a spec CloudEvents v1.0.
+
+---
+
+## Estrutura do projeto
+
+```
+poc-cloudevents/
+├── docker-compose.yml
+├── test.sh
+├── README.md
+└── src/
+    ├── producer-dotnet/          # ASP.NET - Produz CloudEvents
+    │   ├── Controllers/
+    │   ├── Models/
+    │   └── Services/
+    ├── consumer-dotnet/          # ASP.NET - Consome CloudEvents
+    │   ├── Controllers/
+    │   ├── Models/
+    │   └── Services/
+    ├── consumer-node/            # Express - Consome CloudEvents
+    └── consumer-python/          # Flask - Consome CloudEvents
+```
 
 ---
 
@@ -199,6 +234,3 @@ Exemplos:
 - `com.example.user.updated`
 - `com.example.payment.processed`
 - `com.example.inventory.reserved`
-
----
-

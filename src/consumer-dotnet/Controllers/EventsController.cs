@@ -1,6 +1,6 @@
-using System.Text.Json;
 using CloudNative.CloudEvents.AspNetCore;
 using CloudNative.CloudEvents.SystemTextJson;
+using ConsumerDotnet.Extensions;
 using ConsumerDotnet.Models;
 using ConsumerDotnet.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -29,9 +29,14 @@ public class EventsController : ControllerBase
     {
         var cloudEvent = await Request.ToCloudEventAsync(_formatter);
 
-        var data = cloudEvent.Data is JsonElement jsonElement
-            ? jsonElement
-            : JsonSerializer.Deserialize<JsonElement>(cloudEvent.Data?.ToString() ?? "{}");
+        var data = cloudEvent.Type switch
+        {
+            "com.example.order.created" => cloudEvent.GetData<OrderCreatedData>(),
+            "com.example.order.shipped" => cloudEvent.GetData<OrderShippedData>(),
+            "com.example.user.registered" => cloudEvent.GetData<UserRegisteredData>(),
+            "com.example.user.updated" => cloudEvent.GetData<UserUpdatedData>(),
+            _ => cloudEvent.Data!
+        };
 
         var extensions = cloudEvent.GetPopulatedAttributes()
             .Where(a => !CloudEventCoreAttributes.Contains(a.Key.Name))

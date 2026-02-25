@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 namespace ConsumerDotnet.Models;
 
 public record ReceivedCloudEvent(
@@ -8,7 +6,7 @@ public record ReceivedCloudEvent(
     string? Source,
     DateTimeOffset? Time,
     string? DataContentType,
-    JsonElement Data,
+    object Data,
     string SpecVersion,
     DateTime ReceivedAt,
     Dictionary<string, string?> Extensions

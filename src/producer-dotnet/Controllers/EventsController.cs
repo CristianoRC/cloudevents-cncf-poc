@@ -1,5 +1,4 @@
 using System.Net.Mime;
-using System.Text.Json;
 using CloudNative.CloudEvents;
 using Microsoft.AspNetCore.Mvc;
 using ProducerDotnet.Models;
@@ -43,7 +42,7 @@ public class EventsController : ControllerBase
             Source = new Uri("/producer-dotnet/orders", UriKind.Relative),
             Time = DateTimeOffset.UtcNow,
             DataContentType = MediaTypeNames.Application.Json,
-            Data = JsonSerializer.Serialize(data),
+            Data = data,
             ["correlationid"] = orderId,
             ["partitionkey"] = orderId
         };
@@ -72,7 +71,7 @@ public class EventsController : ControllerBase
             Source = new Uri("/producer-dotnet/orders", UriKind.Relative),
             Time = DateTimeOffset.UtcNow,
             DataContentType = MediaTypeNames.Application.Json,
-            Data = JsonSerializer.Serialize(data),
+            Data = data,
             ["correlationid"] = orderId,
             ["partitionkey"] = orderId
         };
